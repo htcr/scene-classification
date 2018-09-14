@@ -98,9 +98,9 @@ def get_feature_from_wordmap(wordmap,dict_size):
 	[output]
 	* hist: numpy.ndarray of shape (K)
 	'''
-	
-	# ----- TODO -----
-	pass
+	hist, bin_edge = np.histogram(wordmap, bins=dict_size, range=(0, dict_size))
+	hist = hist / np.sum(hist)
+	return hist
 
 
 

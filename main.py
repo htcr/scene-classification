@@ -31,7 +31,11 @@ if __name__ == '__main__':
 
 	dictionary = np.load('dictionary.npy')
 	wordmap = visual_words.get_visual_words(image,dictionary)
-	util.save_wordmap(wordmap, 'word_map.jpg')
+	# util.save_wordmap(wordmap, 'word_map.jpg')
+
+	# tmp
+	hist = visual_recog.get_feature_from_wordmap(wordmap, 100)
+
 	#visual_recog.build_recognition_system(num_workers=num_cores)
 
 	#conf, accuracy = visual_recog.evaluate_recognition_system(num_workers=num_cores)
