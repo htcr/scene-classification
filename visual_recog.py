@@ -5,6 +5,8 @@ import imageio
 import os,time
 import math
 import visual_words
+import skimage.io
+from multiprocessing import Pool
 
 def build_recognition_system(num_workers=2):
 	'''
@@ -19,14 +21,34 @@ def build_recognition_system(num_workers=2):
 	* dictionary: numpy.ndarray of shape (K,3F)
 	* SPM_layer_num: number of spatial pyramid layers
 	'''
+	
+	trained_system_path = 'trained_system.npz'
+	
+	if not os.path.exists(trained_system_path):
+		print('building system from train data')
 
+		train_data = np.load("../data/train_data.npz")
+		dictionary = np.load("dictionary.npy")
+		
+		train_labels = train_data['labels']
+		train_image_names = train_data['image_names']
+		data_dir = '../data'
 
+		layer_num = 3
+		K = 100
 
-	train_data = np.load("../data/train_data.npz")
-	dictionary = np.load("dictionary.npy")
-	# ----- TODO -----
-
-	pass
+		# exract train set feature
+		pool = Pool(processes=num_workers)
+		all_args = list()
+		for image_name in train_image_names:
+			all_args.append((os.path.join(data_dir, image_name[0]), dictionary, layer_num, K))
+		train_features = pool.map(get_image_feature_multiprocess, all_args)
+		train_features = np.stack(train_features, axis=0)
+		
+		# save trained system
+		np.savez(trained_system_path, features=train_features, labels=train_labels, dictionary=dictionary, SPM_layer_num=layer_num)
+	
+	print('trained system created.')
 
 def evaluate_recognition_system(num_workers=2):
 	'''
@@ -43,10 +65,53 @@ def evaluate_recognition_system(num_workers=2):
 
 	test_data = np.load("../data/test_data.npz")
 	trained_system = np.load("trained_system.npz")
-	# ----- TODO -----
-	pass
+	
+	# unzip test data
+	test_labels = test_data['labels']
+	test_image_names = test_data['image_names']
+	data_dir = '../data'
+	
+	# unzip trained system
+	features = trained_system['features']
+	labels = trained_system['labels']
+	dictionary = trained_system['dictionary']
+	SPM_layer_num = trained_system['SPM_layer_num']
+
+	test_features_path = 'test_features.npy'
+	if not os.path.exists(test_features_path):
+		# exract test set feature
+		print('extracting test set feature')
+		pool = Pool(processes=num_workers)
+		all_args = list()
+		for image_name in test_image_names:
+			all_args.append((os.path.join(data_dir, image_name[0]), dictionary, SPM_layer_num, dictionary.shape[0]))
+		test_features = pool.map(get_image_feature_multiprocess, all_args)
+		test_features = np.stack(test_features, axis=0)
+		np.save(test_features_path, test_features)
+		print('done')
+	else:
+		print('reading test features from cache')
+		test_features = np.load(test_features_path)
+
+	# predict class label and build conf matrix
+	conf = np.zeros((8, 8))
+	for test_idx, test_feature in enumerate(test_features):
+		distances = distance_to_set(test_feature, features)
+		pred_cls = labels[np.argmax(distances)]
+		conf[test_labels[test_idx], pred_cls] += 1
+	
+	accuracy = np.trace(conf) / np.sum(conf)
+
+	return conf, accuracy
 
 
+def get_image_feature_multiprocess(args):
+	pid = os.getpid()
+	t0 = time.time()
+	feature = get_image_feature(*args)
+	t1 = time.time()
+	print('p%d finished extracting feature in %fs' % (pid, t1-t0))
+	return feature
 
 
 def get_image_feature(file_path,dictionary,layer_num,K):
@@ -62,10 +127,11 @@ def get_image_feature(file_path,dictionary,layer_num,K):
 	[output]
 	* feature: numpy.ndarray of shape (K)
 	'''
-	pass
-
-
-	# ----- TODO -----
+	image = skimage.io.imread(file_path)
+	image = image.astype('float')/255
+	wordmap = visual_words.get_visual_words(image,dictionary)
+	feature = get_feature_from_wordmap_SPM(wordmap, layer_num, K)
+	return feature
 
 
 def distance_to_set(word_hist,histograms):
@@ -79,12 +145,8 @@ def distance_to_set(word_hist,histograms):
 	[output]
 	* sim: numpy.ndarray of shape (N)
 	'''
-	pass
-	
-
-
-	# ----- TODO -----
-
+	similarities = np.sum(np.minimum(histograms, word_hist), axis=1)
+	return similarities
 
 
 def get_feature_from_wordmap(wordmap,dict_size, norm=False):
