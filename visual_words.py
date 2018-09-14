@@ -114,22 +114,48 @@ def compute_dictionary(num_workers=2):
 	train_image_names = train_data['image_names']
 	data_dir = '../data'
 	feature_dir = '../feature'
-	if not os.path.exists(feature_dir):
-		os.makedirs(feature_dir)
 	
-
 	alpha = 50
 	K = 100
-
-	args_ary = []
-	for name in train_image_names:
-		args_ary.append((data_dir, name[0], feature_dir, alpha))
-
-	pool = Pool(processes=num_workers)
-	pool.map(compute_dictionary_one_image, args_ary)
-	print('done, all features saved')
 	
+	if not os.path.exists(feature_dir):
+		os.makedirs(feature_dir)
 
-	pass
+		# construct argument list for multiprocessing
+		args_ary = []
+		for name in train_image_names:
+			args_ary.append((data_dir, name[0], feature_dir, alpha))
+		# run multiprocessing
+		pool = Pool(processes=num_workers)
+		pool.map(compute_dictionary_one_image, args_ary)
+		print('done, all features saved')
+	else:
+		print('using cached features')
+	
+	# do clustering
+	dictionary_path = os.path.join(data_dir, 'dictionary.npy')
+	if not os.path.exists(dictionary_path):
+		# load features
+		all_image_feature = list()
+		image_num = len(train_image_names)
+		for idx, image_name in enumerate(train_image_names):
+			feature_path = os.path.join(feature_dir, image_name[0].replace('/', '_')+'.npy')
+			image_feature = np.load(feature_path)
+			all_image_feature.append(image_feature)
+			print('%d/%d loaded' % (idx+1, image_num))
+		print('concatenating...')
+		all_image_feature = np.concatenate(all_image_feature, axis=0)
+		print('all feature concatenated')
 
-
+		print('doing KMeans')
+		t0 = time.time()
+		kmeans = sklearn.cluster.KMeans(n_clusters=K, n_jobs=-1).fit(all_image_feature)
+		t1 = time.time()
+		print('KMeans done. Time elapsed: %f' % (t1-t0))
+		dictionary = kmeans.cluster_centers_
+		np.save(dictionary_path, dictionary)
+	else:
+		print('loading dictionary from cache')
+		dictionary = np.load(dictionary_path)
+	
+	
