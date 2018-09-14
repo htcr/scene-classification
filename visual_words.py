@@ -11,6 +11,7 @@ import util
 import random
 
 from scipy.ndimage import gaussian_filter, gaussian_laplace
+from multiprocessing import Pool
 
 def extract_filter_responses(image):
 	'''
@@ -66,19 +67,35 @@ def compute_dictionary_one_image(args):
 	This is a function run by a subprocess.
 
 	[input]
-	* i: index of training image
-	* alpha: number of random samples
-	* image_path: path of image file
-	* time_start: time stamp of start time
+	* args[0] data_dir
+	* args[1] image_name
+	* args[2] feature_dir
+	* args[3] alpha
 
 	[saved]
 	* sampled_response: numpy.ndarray of shape (alpha,3F)
 	'''
 
-
-	i,alpha,image_path = args
-	# ----- TODO -----
-	pass
+	t0 = time.time()
+	pid = os.getpid()
+	data_dir, image_name, feature_dir, alpha = args
+	
+	image_path = os.path.join(data_dir, image_name)
+	image = skimage.io.imread(image_path)
+	image = image.astype('float')/255
+	filter_responses = extract_filter_responses(image)
+	
+	feature_size = filter_responses.shape[2]
+	filter_responses = filter_responses.reshape((-1, feature_size))
+	
+	pixel_num = filter_responses.shape[0]
+	sampled_features = filter_responses[np.random.choice(pixel_num, alpha, replace=False), :]
+	
+	save_path = os.path.join(feature_dir, image_name.replace('/', '_'))
+	np.save(save_path, sampled_features)
+	
+	t1 = time.time()
+	print('p%d done with %s in %f seconds' % (pid, image_name, t1-t0))
 
 
 def compute_dictionary(num_workers=2):
@@ -93,7 +110,26 @@ def compute_dictionary(num_workers=2):
 	'''
 
 	train_data = np.load("../data/train_data.npz")
-	# ----- TODO -----
+	train_labels = train_data['labels']
+	train_image_names = train_data['image_names']
+	data_dir = '../data'
+	feature_dir = '../feature'
+	if not os.path.exists(feature_dir):
+		os.makedirs(feature_dir)
+	
+
+	alpha = 50
+	K = 100
+
+	args_ary = []
+	for name in train_image_names:
+		args_ary.append((data_dir, name[0], feature_dir, alpha))
+
+	pool = Pool(processes=num_workers)
+	pool.map(compute_dictionary_one_image, args_ary)
+	print('done, all features saved')
+	
+
 	pass
 
 
