@@ -56,9 +56,19 @@ def get_visual_words(image,dictionary):
 	[output]
 	* wordmap: numpy.ndarray of shape (H,W)
 	'''
+	img_h, img_w = image.shape[0], image.shape[1]
+	# get filter response
+	filter_response = extract_filter_responses(image)
+	feature_size = filter_response.shape[2]
+	filter_response = filter_response.reshape((-1, feature_size))
 	
-	# ----- TODO -----
-	pass
+	# compute distance
+	pairwise_dist = scipy.spatial.distance.cdist(filter_response, dictionary)
+	# pick nearest dictionary entry
+	wordmap = np.argmin(pairwise_dist, axis=1)
+	wordmap = wordmap.reshape((img_h, img_w))
+	
+	return wordmap
 
 
 def compute_dictionary_one_image(args):
@@ -133,7 +143,7 @@ def compute_dictionary(num_workers=2):
 		print('using cached features')
 	
 	# do clustering
-	dictionary_path = os.path.join(data_dir, 'dictionary.npy')
+	dictionary_path = 'dictionary.npy'
 	if not os.path.exists(dictionary_path):
 		# load features
 		all_image_feature = list()
@@ -158,4 +168,4 @@ def compute_dictionary(num_workers=2):
 		print('loading dictionary from cache')
 		dictionary = np.load(dictionary_path)
 	
-	
+
