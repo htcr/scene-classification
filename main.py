@@ -34,7 +34,9 @@ if __name__ == '__main__':
 	# util.save_wordmap(wordmap, 'word_map.jpg')
 
 	# tmp
-	hist = visual_recog.get_feature_from_wordmap(wordmap, 100)
+	feature = visual_recog.get_feature_from_wordmap_SPM(wordmap, 3, 100)
+	print(feature.shape)
+	print(np.sum(feature))
 
 	#visual_recog.build_recognition_system(num_workers=num_cores)
 

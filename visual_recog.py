@@ -87,7 +87,7 @@ def distance_to_set(word_hist,histograms):
 
 
 
-def get_feature_from_wordmap(wordmap,dict_size):
+def get_feature_from_wordmap(wordmap,dict_size, norm=False):
 	'''
 	Compute histogram of visual words.
 
@@ -99,7 +99,8 @@ def get_feature_from_wordmap(wordmap,dict_size):
 	* hist: numpy.ndarray of shape (K)
 	'''
 	hist, bin_edge = np.histogram(wordmap, bins=dict_size, range=(0, dict_size))
-	hist = hist / np.sum(hist)
+	if norm:
+		hist = hist / np.sum(hist)
 	return hist
 
 
@@ -116,11 +117,50 @@ def get_feature_from_wordmap_SPM(wordmap,layer_num,dict_size):
 	[output]
 	* hist_all: numpy.ndarray of shape (K*(4^layer_num-1)/3)
 	'''
+	# compute finest hists
+	img_h, img_w = wordmap.shape[0], wordmap.shape[1]
+	finest_splits = 2**(layer_num-1)
 	
-	# ----- TODO -----
+	cell_h = int(np.ceil(img_h / finest_splits))
+	cell_w = int(np.ceil(img_w / finest_splits))
+	finest_hists = list()
+	for i in range(finest_splits):
+		for j in range(finest_splits):
+			cur_cell = wordmap[i*cell_h:min((i+1)*cell_h, img_h), j*cell_w:min((j+1)*cell_w, img_w)]
+			cur_cell_hist = get_feature_from_wordmap(cur_cell, dict_size, norm=False)
+			finest_hists.append(cur_cell_hist)
+	
+	pyramid_hists = [finest_hists]
+	for l in range(layer_num-1):
+		cur_layer_hist = list()
+		cur_layer_splits = int(finest_splits / (2**(l+1)))
+		prev_layer_splits = cur_layer_splits*2
+		prev_hist = pyramid_hists[-1]
+		for i in range(cur_layer_splits):
+			for j in range(cur_layer_splits):
+				# 0 1
+				# 2 3
+				h0 = prev_hist[2*i*prev_layer_splits + 2*j]
+				h1 = prev_hist[2*i*prev_layer_splits + 2*j+1]
+				h2 = prev_hist[(2*i+1)*prev_layer_splits + 2*j]
+				h3 = prev_hist[(2*i+1)*prev_layer_splits + 2*j+1]
+				cur_cell_hist = h0+h1+h2+h3
+				cur_layer_hist.append(cur_cell_hist)
+		pyramid_hists.append(cur_layer_hist)
+	
+	all_hists = list()
+	for layer_idx, layer in enumerate(pyramid_hists):
+		if layer_idx == len(pyramid_hists)-1:
+			weight = 0.5**layer_idx
+		else:
+			weight = 0.5**(layer_idx+1)
+		
+		for hist in layer:
+			weighted_hist = (hist / (img_h*img_w)) * weight
+			all_hists.append(weighted_hist)
 
-	pass
-
+	feature_vec = np.concatenate(all_hists, axis=0)
+	return feature_vec
 
 
 
