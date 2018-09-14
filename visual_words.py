@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import util
 import random
 
+from scipy.ndimage import gaussian_filter, gaussian_laplace
+
 def extract_filter_responses(image):
 	'''
 	Extracts the filter responses for the given image.
@@ -19,14 +21,28 @@ def extract_filter_responses(image):
 	[output]
 	* filter_responses: numpy.ndarray of shape (H,W,3F)
 	'''
+	# handle non 3-channel images
+	if len(image.shape) < 3:
+		image = image[:, :, np.newaxis]
 	
-	# ----- TODO -----
+	if image.shape[2] == 1:
+		image = np.concatenate([image, image, image], axis=2)
+	elif image.shape[2] > 3:
+		image = image[:, :, 0:3]
 	
-	pass
+	assert len(image.shape) == 3 and image.shape[2] == 3
 
-
-
-
+	# filter sigmas
+	sigmas = [1, 2, 4, 8, 11.3137]
+	output = np.zeros((image.shape[0], image.shape[1], 3*20), dtype=np.float32)
+	for sigma_idx, sigma in enumerate(sigmas):
+		for ch_idx in range(3):
+			output[:, :, sigma_idx*4*3 + ch_idx] = gaussian_filter(image[:, :, ch_idx], sigma, mode='constant')
+			output[:, :, sigma_idx*4*3 + 3 + ch_idx] = gaussian_laplace(image[:, :, ch_idx], sigma, mode='constant')
+			output[:, :, sigma_idx*4*3 + 6 + ch_idx] = gaussian_filter(image[:, :, ch_idx], sigma, order=[0, 1], mode='constant')
+			output[:, :, sigma_idx*4*3 + 9 + ch_idx] = gaussian_filter(image[:, :, ch_idx], sigma, order=[1, 0], mode='constant')
+	
+	return output
 
 
 def get_visual_words(image,dictionary):
