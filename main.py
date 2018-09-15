@@ -43,25 +43,9 @@ if __name__ == '__main__':
 	print(accuracy)
 	'''
 
-	vgg16_weights = util.get_VGG16_weights()
-	x = np.random.rand(227, 227, 3).astype(np.float32)
-	weight = vgg16_weights[0][1]
-	bias = vgg16_weights[0][2]
-	response_mine = network_layers.multichannel_conv2d(x, weight, bias)
+	vgg16 = torchvision.models.vgg16(pretrained=True).double()
+	vgg16.eval()
 	
-	t_x = torch.Tensor(np.transpose(x, [2, 0, 1])[np.newaxis, :, :, :])
-	t_w = torch.Tensor(weight)
-	t_b = torch.Tensor(bias)
-	t_response_pt = torch.nn.functional.conv2d(t_x, t_w, t_b, padding=1)
-	response_pt = t_response_pt.numpy()
-	response_pt = np.transpose(response_pt[0, :, :, :], [1, 2, 0])
-
-	error = np.sum(np.abs(response_mine-response_pt)) / np.sum(np.abs(response_pt))
-	print(error)
-
-
-	#vgg16 = torchvision.models.vgg16(pretrained=True).double()
-	#vgg16.eval()
 	#deep_recog.build_recognition_system(vgg16,num_workers=num_cores//2)
 	#conf = deep_recog.evaluate_recognition_system(vgg16,num_workers=num_cores//2)
 	#print(conf)
