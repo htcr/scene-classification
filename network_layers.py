@@ -13,7 +13,8 @@ def extract_deep_feature(x,vgg16_weights):
 	[output]
 	* feat: numpy.ndarray of shape (K)
 	'''
-	pass
+	
+	
 
 
 def multichannel_conv2d(x,weight,bias):
@@ -28,8 +29,18 @@ def multichannel_conv2d(x,weight,bias):
 	[output]
 	* feat: numpy.ndarray of shape (H,W,output_dim)
 	'''
+	c_in = x.shape[2]
+	c_out = weight.shape[0]
+	h, w = x.shape[0], x.shape[1]
+	feat = np.zeros((h, w, c_out), dtype=np.float32)
+
+	for i in range(c_out):
+		for j in range(c_in):
+			feat[:, :, i] += scipy.ndimage.correlate(x[:, :, j], weight[i, j, :, :], mode='constant')
+		feat[:, :, i] += bias[i]
 	
-	pass
+	return feat
+	
 
 def relu(x):
 	'''
