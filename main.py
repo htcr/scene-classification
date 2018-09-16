@@ -43,11 +43,12 @@ if __name__ == '__main__':
 	print(accuracy)
 	'''
 
-	vgg16 = torchvision.models.vgg16(pretrained=True).double()
-	vgg16.eval()
-	
+	#vgg16 = torchvision.models.vgg16(pretrained=True).double()
+	#vgg16.eval()
+	vgg16 = util.vgg16_fc7()
+
 	#deep_recog.build_recognition_system(vgg16,num_workers=num_cores//2)
-	#conf = deep_recog.evaluate_recognition_system(vgg16,num_workers=num_cores//2)
-	#print(conf)
-	#print(np.diag(conf).sum()/conf.sum())
+	conf, accuracy = deep_recog.evaluate_recognition_system(vgg16,num_workers=num_cores//2)
+	print(conf)
+	print(accuracy)
 

@@ -53,7 +53,7 @@ def to_pytorch(x):
 	[output]
 	* tensor: pytorch tensor [N, C, H, W]
 	'''
-	x = np.transpose(x, [2, 0, 1])[np.newaxis, :, :, ]
+	x = np.transpose(x, [2, 0, 1])[np.newaxis, :, :]
 	tensor = torch.Tensor(x)
 	return tensor
 	

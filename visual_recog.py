@@ -145,8 +145,8 @@ def distance_to_set(word_hist,histograms):
 	[output]
 	* sim: numpy.ndarray of shape (N)
 	'''
-	similarities = np.sum(np.minimum(histograms, word_hist), axis=1)
-	return similarities
+	sim = np.sum(np.minimum(histograms, word_hist), axis=1)
+	return sim
 
 
 def get_feature_from_wordmap(wordmap,dict_size, norm=False):
