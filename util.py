@@ -10,6 +10,30 @@ def get_num_CPU():
 	'''
 	return multiprocessing.cpu_count()
 
+def get_VGG_weights(vgg):
+	'''
+	Just want to generalize this functionality
+	to snipped VGG that ends at fc7
+	'''
+	vgg16_weights = []
+	for layer in vgg.features:
+		if isinstance(layer,torch.nn.Conv2d):
+			l = ["conv2d",layer.weight.detach().numpy(),layer.bias.detach().numpy()]
+		if isinstance(layer,torch.nn.ReLU):
+			l = ["relu"]
+		if isinstance(layer,torch.nn.MaxPool2d):
+			l = ["maxpool2d",layer.kernel_size]
+		vgg16_weights.append(l)
+	for layer in vgg.classifier:
+		if isinstance(layer,torch.nn.Linear):
+			l = ["linear",layer.weight.detach().numpy(),layer.bias.detach().numpy()]
+		if isinstance(layer,torch.nn.ReLU):
+			l = ["relu"]
+		if isinstance(layer,torch.nn.Dropout): continue
+		vgg16_weights.append(l)
+
+	return vgg16_weights
+
 def get_VGG16_weights():
 	'''
 	Returns the weights and meta-information of the VGG-16 network.
@@ -22,25 +46,7 @@ def get_VGG16_weights():
 	'''
 
 	vgg16 = torchvision.models.vgg16(pretrained=True)
-	vgg16_weights = []
-
-	for layer in vgg16.features:
-		if isinstance(layer,torch.nn.Conv2d):
-			l = ["conv2d",layer.weight.detach().numpy(),layer.bias.detach().numpy()]
-		if isinstance(layer,torch.nn.ReLU):
-			l = ["relu"]
-		if isinstance(layer,torch.nn.MaxPool2d):
-			l = ["maxpool2d",layer.kernel_size]
-		vgg16_weights.append(l)
-	for layer in vgg16.classifier:
-		if isinstance(layer,torch.nn.Linear):
-			l = ["linear",layer.weight.detach().numpy(),layer.bias.detach().numpy()]
-		if isinstance(layer,torch.nn.ReLU):
-			l = ["relu"]
-		if isinstance(layer,torch.nn.Dropout): continue
-		vgg16_weights.append(l)
-
-	return vgg16_weights
+	return get_VGG_weights(vgg16)
 
 def display_filter_responses(response_maps):
 	'''
@@ -70,3 +76,20 @@ def save_wordmap(wordmap, filename):
 	plt.axis('off')
 	plt.imshow(wordmap)
 	plt.savefig(filename, pad_inches=0)
+
+def vgg16_fc7():
+	'''
+	return a pytorch model of vgg16 that is cut after fc7
+	'''
+	vgg16 = torchvision.models.vgg16(pretrained=True).float()
+	vgg16 = vgg16.eval()
+	vgg16_classifier = vgg16.classifier
+	vgg16_classifier_snipped = torch.nn.Sequential(*(list(vgg16_classifier.children())[0:5]))
+	vgg16.classifier = vgg16_classifier_snipped
+	return vgg16
+
+def test_vgg16_fc7():
+	vgg = vgg16_fc7()
+	x = torch.Tensor(np.random.randn(1, 3, 224, 224).astype(np.float32))
+	out = vgg(x)
+	print(out.shape)

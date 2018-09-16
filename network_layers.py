@@ -3,6 +3,9 @@ import scipy.ndimage
 import os,time
 import util
 import torch
+from visual_words import to_3channel
+import skimage
+import skimage.transform
 
 def extract_deep_feature(x,vgg16_weights):
 	'''
@@ -15,6 +18,7 @@ def extract_deep_feature(x,vgg16_weights):
 	[output]
 	* feat: numpy.ndarray of shape (K)
 	'''
+	
 	met_fc = False
 	for layer in vgg16_weights:
 		name = layer[0]
@@ -31,7 +35,43 @@ def extract_deep_feature(x,vgg16_weights):
 			x = linear(x, layer[1], layer[2])
 	
 	return x
-		
+
+def preprocess(image, size):
+	image = skimage.transform.resize(image, size, mode='constant')
+	image = to_3channel(image)
+	image.astype(np.float32)/255
+	mean = np.array([0.485,0.456,0.406], dtype=np.float32)[np.newaxis, np.newaxis, :]
+	std = np.array([0.229,0.224,0.225], dtype=np.float32)[np.newaxis, np.newaxis, :]
+	image = (image-mean) / std
+	return image
+
+def to_pytorch(x):
+	'''
+	Preprocess image to pytorch-acceptable tensor
+	[input]
+	* x: numpy.ndarray of shape (H,W,3)
+	[output]
+	* tensor: pytorch tensor [N, C, H, W]
+	'''
+	x = np.transpose(x, [2, 0, 1])[np.newaxis, :, :, ]
+	tensor = torch.Tensor(x)
+	return tensor
+	
+def extract_deep_feature_pytorch(x, model, device='cpu'):
+	'''
+	Extracts deep features from VGG-16 using pytorch
+
+	[input]
+	* x: numpy.ndarray of shape (H,W,3)
+	* model: pytorch model
+
+	[output]
+	* feat: numpy.ndarray of shape (K)
+	'''
+	tensor = to_pytorch(x).to(device)
+	output = model(tensor)
+	feat = output.detach().to('cpu').numpy().reshape(-1)
+	return feat
 
 def multichannel_conv2d(x,weight,bias):
 	'''
@@ -196,6 +236,22 @@ def test_components():
 	test_relu()
 	test_linear()
 
+def test_vgg16():
+	vgg16_fc7 = util.vgg16_fc7()
+	vgg16_fc7_weights = util.get_VGG_weights(vgg16_fc7)
+	x = np.random.randn(500, 300, 3)
+	
+	x = preprocess(x, (224, 224))
+	out_mine = extract_deep_feature(x, vgg16_fc7_weights)
+	vgg16_fc7.to('cuda')
+	out_pt = extract_deep_feature_pytorch(x, vgg16_fc7, device='cuda')
+	
+	print(out_mine.shape)
+	print(out_pt.shape)
+	error = np.sum(np.abs(out_mine-out_pt)) / np.sum(np.abs(out_pt))
+	print('vgg error: %f' % error)
+	
 if __name__=='__main__':
 	# use pytorch functions as baseline.
-	test_components()
+	# test_components()
+	test_vgg16()

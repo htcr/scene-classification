@@ -13,15 +13,7 @@ import random
 from scipy.ndimage import gaussian_filter, gaussian_laplace
 from multiprocessing import Pool
 
-def extract_filter_responses(image):
-	'''
-	Extracts the filter responses for the given image.
-
-	[input]
-	* image: numpy.ndarray of shape (H,W) or (H,W,3)
-	[output]
-	* filter_responses: numpy.ndarray of shape (H,W,3F)
-	'''
+def to_3channel(image):
 	# handle non 3-channel images
 	if len(image.shape) < 3:
 		image = image[:, :, np.newaxis]
@@ -32,6 +24,19 @@ def extract_filter_responses(image):
 		image = image[:, :, 0:3]
 	
 	assert len(image.shape) == 3 and image.shape[2] == 3
+	return image
+
+def extract_filter_responses(image):
+	'''
+	Extracts the filter responses for the given image.
+
+	[input]
+	* image: numpy.ndarray of shape (H,W) or (H,W,3)
+	[output]
+	* filter_responses: numpy.ndarray of shape (H,W,3F)
+	'''
+	# handle non 3-channel images
+	image = to_3channel(image)
 
 	# filter sigmas
 	sigmas = [1, 2, 4, 8, 11.3137]
