@@ -40,15 +40,15 @@ def extract_filter_responses(image):
 
 	# filter sigmas
 	sigmas = [1, 2, 4, 8, 11.3137]
-	output = np.zeros((image.shape[0], image.shape[1], 3*20), dtype=np.float32)
+	filter_responses = np.zeros((image.shape[0], image.shape[1], 3*20), dtype=np.float32)
 	for sigma_idx, sigma in enumerate(sigmas):
 		for ch_idx in range(3):
-			output[:, :, sigma_idx*4*3 + ch_idx] = gaussian_filter(image[:, :, ch_idx], sigma, mode='constant')
-			output[:, :, sigma_idx*4*3 + 3 + ch_idx] = gaussian_laplace(image[:, :, ch_idx], sigma, mode='constant')
-			output[:, :, sigma_idx*4*3 + 6 + ch_idx] = gaussian_filter(image[:, :, ch_idx], sigma, order=[0, 1], mode='constant')
-			output[:, :, sigma_idx*4*3 + 9 + ch_idx] = gaussian_filter(image[:, :, ch_idx], sigma, order=[1, 0], mode='constant')
+			filter_responses[:, :, sigma_idx*4*3 + ch_idx] = gaussian_filter(image[:, :, ch_idx], sigma, mode='constant')
+			filter_responses[:, :, sigma_idx*4*3 + 3 + ch_idx] = gaussian_laplace(image[:, :, ch_idx], sigma, mode='constant')
+			filter_responses[:, :, sigma_idx*4*3 + 6 + ch_idx] = gaussian_filter(image[:, :, ch_idx], sigma, order=[0, 1], mode='constant')
+			filter_responses[:, :, sigma_idx*4*3 + 9 + ch_idx] = gaussian_filter(image[:, :, ch_idx], sigma, order=[1, 0], mode='constant')
 	
-	return output
+	return filter_responses
 
 
 def get_visual_words(image,dictionary):
@@ -104,10 +104,10 @@ def compute_dictionary_one_image(args):
 	filter_responses = filter_responses.reshape((-1, feature_size))
 	
 	pixel_num = filter_responses.shape[0]
-	sampled_features = filter_responses[np.random.choice(pixel_num, alpha, replace=False), :]
+	sampled_response = filter_responses[np.random.choice(pixel_num, alpha, replace=False), :]
 	
 	save_path = os.path.join(feature_dir, image_name.replace('/', '_'))
-	np.save(save_path, sampled_features)
+	np.save(save_path, sampled_response)
 	
 	t1 = time.time()
 	print('p%d done with %s in %f seconds' % (pid, image_name, t1-t0))

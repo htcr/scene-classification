@@ -221,8 +221,8 @@ def get_feature_from_wordmap_SPM(wordmap,layer_num,dict_size):
 			weighted_hist = (hist / (img_h*img_w)) * weight
 			all_hists.append(weighted_hist)
 
-	feature_vec = np.concatenate(all_hists, axis=0)
-	return feature_vec
+	hist_all = np.concatenate(all_hists, axis=0)
+	return hist_all
 
 
 

@@ -22,7 +22,7 @@ def build_recognition_system(vgg16,num_workers=2):
 	* features: numpy.ndarray of shape (N,K)
 	* labels: numpy.ndarray of shape (N)
 	'''
-	trained_system_path = 'trained_system_vgg.npz'
+	trained_system_path = 'trained_system_deep.npz'
 	
 	if not os.path.exists(trained_system_path):
 		print('building system from train data')
@@ -66,7 +66,7 @@ def evaluate_recognition_system(vgg16,num_workers=2):
 	'''
 
 	test_data = np.load("../data/test_data.npz")
-	trained_system = np.load("trained_system_vgg.npz")
+	trained_system = np.load("trained_system_deep.npz")
 	
 	# unzip test data
 	test_labels = test_data['labels']

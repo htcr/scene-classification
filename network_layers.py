@@ -34,7 +34,8 @@ def extract_deep_feature(x,vgg16_weights):
 				met_fc = True
 			x = linear(x, layer[1], layer[2])
 	
-	return x
+	feat = x
+	return feat
 
 def preprocess(image, size):
 	image = skimage.transform.resize(image, size, mode='constant')
@@ -253,5 +254,5 @@ def test_vgg16():
 	
 if __name__=='__main__':
 	# use pytorch functions as baseline.
-	# test_components()
+	test_components()
 	test_vgg16()
