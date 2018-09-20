@@ -3,6 +3,7 @@ import torch
 import torchvision
 import matplotlib.pyplot as plt
 import multiprocessing
+from skimage import color
 
 def get_num_CPU():
 	'''
@@ -48,7 +49,7 @@ def get_VGG16_weights():
 	vgg16 = torchvision.models.vgg16(pretrained=True)
 	return get_VGG_weights(vgg16)
 
-def display_filter_responses(response_maps):
+def display_filter_responses(response_maps, mode='lab'):
 	'''
 	Visualizes the filter response maps.
 
@@ -61,6 +62,10 @@ def display_filter_responses(response_maps):
 	for i in range(20):
 		plt.subplot(5,4,i+1)
 		resp = response_maps[:,:,i*3:i*3+3]
+		
+		if mode=='lab':
+			resp = color.rgb2lab(resp)
+		
 		resp_min = resp.min(axis=(0,1),keepdims=True)
 		resp_max = resp.max(axis=(0,1),keepdims=True)
 		resp = (resp-resp_min)/(resp_max-resp_min)
@@ -74,7 +79,7 @@ def save_wordmap(wordmap, filename):
 	fig = plt.figure(2)
 	plt.axis('equal')
 	plt.axis('off')
-	plt.imshow(wordmap)
+	plt.imshow(wordmap, cmap='hsv')
 	plt.savefig(filename, pad_inches=0)
 
 def vgg16_fc7():

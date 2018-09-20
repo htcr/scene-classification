@@ -98,7 +98,10 @@ def evaluate_recognition_system(num_workers=2):
 	for test_idx, test_feature in enumerate(test_features):
 		distances = distance_to_set(test_feature, features)
 		pred_cls = labels[np.argmax(distances)]
-		conf[test_labels[test_idx], pred_cls] += 1
+		true_cls = test_labels[test_idx]
+		conf[true_cls, pred_cls] += 1
+		if true_cls != pred_cls:
+			print('wrong case: %s cls %d -> cls %d' % (test_image_names[test_idx][0], true_cls, pred_cls))
 	
 	accuracy = np.trace(conf) / np.sum(conf)
 
