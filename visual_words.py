@@ -37,6 +37,7 @@ def extract_filter_responses(image):
 	'''
 	# handle non 3-channel images
 	image = to_3channel(image)
+	image = skimage.color.rgb2lab(image)
 
 	# filter sigmas
 	sigmas = [1, 2, 4, 8, 11.3137]

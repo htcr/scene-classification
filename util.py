@@ -49,7 +49,7 @@ def get_VGG16_weights():
 	vgg16 = torchvision.models.vgg16(pretrained=True)
 	return get_VGG_weights(vgg16)
 
-def display_filter_responses(response_maps, mode='lab'):
+def display_filter_responses(response_maps, mode='rgb'):
 	'''
 	Visualizes the filter response maps.
 
